@@ -32,7 +32,10 @@
                  /* Untuk memotong konten yang terlalu panjang */
          }
      </style>
+     
      <div id="render">
+
+
          <div class="page-heading">
              <div class="page-title">
                  <div class="row">
@@ -73,7 +76,7 @@
                                              </div>
                                          </div>
                                          <div class="col-md-10 col-lg-12 col-xl-12 col-xxl-9">
-                                             <h6 class="text-muted font-semibold">Solved Project</h6>
+                                             <h6 class="text-muted font-semibold">Project Completed</h6>
                                              <h6 class="font-extrabold mb-0">
                                                  {{ $project_all['solved'] }}</h6>
                                          </div>
@@ -85,12 +88,12 @@
                              <div class="card">
                                  <div class="card-body px-4 py-4-5">
                                      <div class="row">
-                                         <div class="col-md-2 col-lg-12 col-xl-12 col-xxl-5 d-flex justify-content-start ">
+                                         <div class="col-md-3 col-lg-6 col-xl-6 col-xxl-3 d-flex justify-content-start">
                                              <div class="stats-icon purple mb-2">
                                                  <i class="iconly-boldChart"></i>
                                              </div>
                                          </div>
-                                         <div class="col-md-10 col-lg-12 col-xl-12 col-xxl-7">
+                                         <div class="col-md-10 col-lg-12 col-xl-12 col-xxl-9">
                                              <h6 class="text-muted font-semibold">Project On Progress</h6>
                                              <h6 class="font-extrabold mb-0">
                                                  {{ $project_all['progres'] }}</h6>
@@ -105,11 +108,11 @@
                                      <div class="row">
                                          <div class="col-md-3 col-lg-6 col-xl-6 col-xxl-3 d-flex justify-content-start">
                                              <div class="stats-icon red mb-2">
-                                                 <i class="iconly-boldDanger"></i>
+                                                 <i class="iconly-boldChart"></i>
                                              </div>
                                          </div>
                                          <div class="col-md-10 col-lg-12 col-xl-12 col-xxl-9">
-                                             <h6 class="text-muted font-semibold">Project Out of Schedule</h6>
+                                             <h6 class="text-muted font-semibold">Project Out Date</h6>
                                              <h6 class="font-extrabold mb-0">
                                                  {{ $project_all['out_date'] }}</h6>
                                          </div>
@@ -117,7 +120,43 @@
                                  </div>
                              </div>
                          </div>
-                     </div>
+                         <div class="col-6 col-lg-3 col-md-6">
+                             <div class="card">
+                                 <div class="card-body px-4 py-4-5">
+                                     <div class="row">
+                                         <div class="col-md-3 col-lg-6 col-xl-6 col-xxl-3 d-flex justify-content-start">
+                                             <div class="stats-icon yellow mb-2">
+                                                 <i class="iconly-boldChart"></i>
+                                             </div>
+                                         </div>
+                                         <div class="col-md-10 col-lg-12 col-xl-12 col-xxl-9">
+                                             <h6 class="text-muted font-semibold">Project Closed</h6>
+                                             <h6 class="font-extrabold mb-0">
+                                                 {{ $project_all['out_date'] }}</h6>
+                                         </div>
+                                     </div>
+                                 </div>
+                             </div>
+                         </div>
+                         <div class="col-6 col-lg-3 col-md-6">
+                             <div class="card">
+                                 <div class="card-body px-4 py-4-5">
+                                     <div class="row">
+                                         <div class="col-md-3 col-lg-6 col-xl-6 col-xxl-3 d-flex justify-content-start">
+                                             <div class="stats-icon yellow mb-2">
+                                                 <i class="iconly-boldChart"></i>
+                                             </div>
+                                         </div>
+                                         <div class="col-md-10 col-lg-12 col-xl-12 col-xxl-9">
+                                             <h6 class="text-muted font-semibold">Total Tim IT DEV</h6>
+                                             <h6 class="font-extrabold mb-0">
+                                                 {{ $project_all['out_date'] }}</h6>
+                                         </div>
+                                     </div>
+                                 </div>
+                             </div>
+                         </div>
+                         
                      @php
                          $allowedRoles = ['kdv', 'kdp', 'sa', 'PM'];
                      @endphp
@@ -563,6 +602,7 @@
              </div>
          </div>
 
+
      </div>
 
 
@@ -611,6 +651,8 @@
                     }
                 @endforeach
             });
+
+            
 
             function showProjectDetail(id){
                 $.ajax({

@@ -133,13 +133,14 @@ class HomeController extends Controller
         $out_date = 0;
         $solved = 0;
         $progres = 0;
+        $all_project = 0;
         $matchingTimelines = [];
-        $endDateOneYearAgo = now()->subYear();
+        // $endDateOneYearAgo = now()->subYear();
         $project_all = [];
 
         $query = DB::table('Project_Report')
             ->select('*')
-            ->whereDate('End_Date', '>', $endDateOneYearAgo) // Menambahkan klausul WHERE untuk tanggal berakhir kurang dari satu tahun yang lalu
+            // ->whereDate('End_Date', '>', $endDateOneYearAgo) // Menambahkan klausul WHERE untuk tanggal berakhir kurang dari satu tahun yang lalu
             ->get();
 
         $allowedRoles = ['kdv', 'kdp', 'sa', 'PM'];
@@ -221,14 +222,24 @@ class HomeController extends Controller
             if ($key->Project_Status == "LATE" || $key->progress == 100) {
                 $out_date++;
             }
+
+            if ($key->Project_Status != "DONE" || $key->progress == 100) {
+                $all_project++;
+            }
         }
+
+        // $project_all = array_filter($project_all, function ($project) {
+        //     return $project->Project_Status != "DONE";
+        // });
+        // $project_all = array_values($project_all); // Re-index array supaya tidak ada key yang lompat
+
 
         $data = [
             'project' => $project_all,
             'out_date' => $out_date,
             'solved' => $solved,
             'progres' => $progres,
-            'all_project' => $progres + $solved,
+            'all_project' => $all_project,
         ];
 
 
