@@ -252,7 +252,6 @@ class HomeController extends Controller
         $total_tim_IT = DB::table('m_employee')
             ->join('m_roles', 'm_employee.roles_id', '=', 'm_roles.id')
             ->whereIn('m_roles.name', $roles)
-            ->where('m_employee.deleted_status', 0)
             ->count();
 
         $data = [
