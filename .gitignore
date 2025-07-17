@@ -22,4 +22,4 @@ yarn-error.log
 /public/document
 /public/tasklist
 /public/upload
-composer.lock
+/composer.lock
