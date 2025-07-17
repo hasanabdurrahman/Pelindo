@@ -22159,6 +22159,42 @@ body .bi:before {
     background-color: #5ddab4
 }
 
+.stats-icon.yellow {
+    background-color: #ffc107;
+    color: #fff; /* Ini supaya icon tetap putih */
+}
+
+.stats-icon.orange {
+    background-color: #fd7e14;
+    color: #fff;
+}
+
+.stats-icon.teal {
+    background-color: #20c997;
+    color: #fff;
+}
+
+.stats-icon.gray {
+    background-color: #6c757d;
+    color: #fff;
+}
+
+.stats-icon.pink {
+    background-color: #e83e8c;
+    color: #fff;
+}
+
+.stats-icon.indigo {
+    background-color: #6610f2;
+    color: #fff;
+}
+
+.stats-icon.cyan {
+    background-color: #17a2b8;
+    color: #fff;
+}
+
+
 @media (max-width:767px) {
     .stats-icon {
         float: left;

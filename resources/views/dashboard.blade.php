@@ -125,14 +125,14 @@
                                  <div class="card-body px-4 py-4-5">
                                      <div class="row">
                                          <div class="col-md-3 col-lg-6 col-xl-6 col-xxl-3 d-flex justify-content-start">
-                                             <div class="stats-icon yellow mb-2">
+                                             <div class="stats-icon orange mb-2">
                                                  <i class="iconly-boldChart"></i>
                                              </div>
                                          </div>
                                          <div class="col-md-10 col-lg-12 col-xl-12 col-xxl-9">
                                              <h6 class="text-muted font-semibold">Project Closed</h6>
                                              <h6 class="font-extrabold mb-0">
-                                                 {{ $project_all['out_date'] }}</h6>
+                                                 {{ $project_all['closed'] }}</h6>
                                          </div>
                                      </div>
                                  </div>
@@ -143,14 +143,14 @@
                                  <div class="card-body px-4 py-4-5">
                                      <div class="row">
                                          <div class="col-md-3 col-lg-6 col-xl-6 col-xxl-3 d-flex justify-content-start">
-                                             <div class="stats-icon yellow mb-2">
+                                             <div class="stats-icon pink mb-2">
                                                  <i class="iconly-boldChart"></i>
                                              </div>
                                          </div>
                                          <div class="col-md-10 col-lg-12 col-xl-12 col-xxl-9">
                                              <h6 class="text-muted font-semibold">Total Tim IT DEV</h6>
                                              <h6 class="font-extrabold mb-0">
-                                                 {{ $project_all['out_date'] }}</h6>
+                                                 {{ $project_all['total_tim_IT'] }}</h6>
                                          </div>
                                      </div>
                                  </div>

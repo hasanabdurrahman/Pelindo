@@ -134,6 +134,7 @@ class HomeController extends Controller
         $solved = 0;
         $progres = 0;
         $all_project = 0;
+        $closed = 0;
         $matchingTimelines = [];
         // $endDateOneYearAgo = now()->subYear();
         $project_all = [];
@@ -226,6 +227,9 @@ class HomeController extends Controller
             if ($key->Project_Status != "DONE" || $key->progress == 100) {
                 $all_project++;
             }
+            if ($key->Project_Status == "CLOSED") {
+                $closed++;
+            }
         }
 
         // $project_all = array_filter($project_all, function ($project) {
@@ -233,16 +237,33 @@ class HomeController extends Controller
         // });
         // $project_all = array_values($project_all); // Re-index array supaya tidak ada key yang lompat
 
+        // List role yang diinginkan
+        $roles = [
+            "Project Manager",
+            "Project Coordinator",
+            "Business Analyst",
+            "Software Analysis",
+            "Sistem Analyst",
+            "Technical Writer",
+            "Programmer",
+            "Super Admin",
+        ];
+
+        $total_tim_IT = DB::table('m_employee')
+            ->join('m_roles', 'm_employee.roles_id', '=', 'm_roles.id')
+            ->whereIn('m_roles.name', $roles)
+            ->where('m_employee.deleted_status', 0)
+            ->count();
 
         $data = [
             'project' => $project_all,
             'out_date' => $out_date,
             'solved' => $solved,
             'progres' => $progres,
+            'closed' => $closed,
+            'total_tim_IT' => $total_tim_IT,
             'all_project' => $all_project,
         ];
-
-
 
         return $data;
 
