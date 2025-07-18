@@ -22194,6 +22194,11 @@ body .bi:before {
     color: #fff;
 }
 
+#statsModal .modal-dialog {
+  max-width: 80vw;   /* 95% dari viewport width */
+  margin: 1.5rem auto;
+}
+
 
 @media (max-width:767px) {
     .stats-icon {

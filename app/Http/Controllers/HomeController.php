@@ -130,288 +130,109 @@ class HomeController extends Controller
      */
     private function projectlist()
     {
-        $out_date = 0;
-        $solved = 0;
-        $progres = 0;
-        $all_project = 0;
-        $closed = 0;
-        $matchingTimelines = [];
-        // $endDateOneYearAgo = now()->subYear();
-        $project_all = [];
+        $out_date         = $solved = $progres = $closed = $all_project = 0;
+        $solvedList       = $inProgressList = $out_date_list = $closedList = [];
+        $allowedRoles     = ['kdv','kdp','sa','PM'];    // <-- tambah ini
+        $total_tim_IT     = 0;
+        $project_all      = [];
 
-        $query = DB::table('Project_Report')
-            ->select('*')
-            // ->whereDate('End_Date', '>', $endDateOneYearAgo) // Menambahkan klausul WHERE untuk tanggal berakhir kurang dari satu tahun yang lalu
-            ->get();
-
-        $allowedRoles = ['kdv', 'kdp', 'sa', 'PM'];
-
-
-
-        foreach ($query as $project) {
-            $project_id = $project->Id_Project;
-            $completePercentage = 0;
-
-
-            // Menggunakan Eloquent untuk mengambil timeline yang sesuai dengan proyek
-            $timelines = Timeline::select('t_timeline.*', 'm_project.id as project_id', 'm_project.xtype as type', 't_timelineA.fase', 't_timelineA.id', 't_timelineA.karyawan_id', 't_timelineA.closed', 't_timelineA.enddate', 't_timelineA.bobot')
-                ->leftJoin('m_project', 't_timeline.project_id', '=', 'm_project.id')
-                ->leftJoin('t_timelineA', 't_timeline.transactionnumber', '=', 't_timelineA.transactionnumber')
-                ->where('t_timeline.project_id', $project_id)
-                ->get();
-
-
-            $project_following = false;
-
-            foreach ($timelines as $timeline) {
-                $karyawan_id_array = explode(',', $timeline->karyawan_id);
-
-                if (in_array(Auth::user()->roles->code, $allowedRoles)) {
-                    $matchingTimelines[] = $timeline;
-                } else {
-                    // Periksa apakah user saat ini terkait dengan proyek yang sedang diproses
-                    if (in_array(auth()->user()->id, $karyawan_id_array) || $project_following == true) { // Inisialisasi array $project_following) {
-                        $project_following = true;
-                        $matchingTimelines[] = $timeline;
-                    }
-                }
-            }
-
-
-            if ($project_following) {
-                foreach ($timelines as $timeline) {
-                    // Cek status "closed" dan tanggal "enddate" untuk setiap timeline
-                    if ($timeline->closed == 1 && $timeline->project_id == $project_id) {
-                        $completePercentage =  $timeline->bobot + $completePercentage;
-                    }
-                }
-            } else {
-                foreach ($matchingTimelines as $timeline) {
-                    // Cek status "closed" dan tanggal "enddate" untuk setiap timeline
-                    if ($timeline->closed == 1 && $timeline->project_id == $project_id) {
-                        $completePercentage =  $timeline->bobot + $completePercentage;
-                    }
-                }
-            }
-
-
-            $project->progress = $completePercentage;
-            $project->type = $timelines->isEmpty() ? null : $timelines[0]->type;
-
-            foreach ($timelines as $timeline) {
-                $karyawan_id_array = explode(',', $timeline->karyawan_id);
-
-                if (in_array(Auth::user()->roles->code, $allowedRoles)) {
-                    $project_all[] = $project;
-                    break;
-                } else {
-                    if (in_array(auth()->user()->id, $karyawan_id_array)) {
-                        $project_all[] = $project;
-                        break;
-                    }
-                }
-            }
-        }
-
-        foreach ($project_all as $key) {
-            if ($key->Project_Status == "ON PROGRESS" || $key->Project_Status == "UP COMMING" || $key->Project_Status == "LATE") {
-                $progres++;
-            } else if ($key->Project_Status == "DONE") {
-                $solved++;
-            }
-
-            if ($key->Project_Status == "LATE" || $key->progress == 100) {
-                $out_date++;
-            }
-
-            if ($key->Project_Status != "DONE" || $key->progress == 100) {
-                $all_project++;
-            }
-            if ($key->Project_Status == "CLOSED") {
-                $closed++;
-            }
-        }
-
-        // $project_all = array_filter($project_all, function ($project) {
-        //     return $project->Project_Status != "DONE";
-        // });
-        // $project_all = array_values($project_all); // Re-index array supaya tidak ada key yang lompat
-
-        // List role yang diinginkan
+        // Hitung total tim IT
         $roles = [
-            "Project Manager",
-            "Project Coordinator",
-            "Business Analyst",
-            "Software Analysis",
-            "Sistem Analyst",
-            "Technical Writer",
-            "Programmer",
-            "Super Admin",
+            "Project Manager","Project Coordinator","Business Analyst",
+            "Software Analysis","Sistem Analyst","Technical Writer",
+            "Programmer","Super Admin",
         ];
-
         $total_tim_IT = DB::table('m_employee')
-            ->join('m_roles', 'm_employee.roles_id', '=', 'm_roles.id')
-            ->whereIn('m_roles.name', $roles)
+            ->join('m_roles','m_employee.roles_id','=','m_roles.id')
+            ->whereIn('m_roles.name',$roles)
             ->count();
 
-        $data = [
-            'project' => $project_all,
-            'out_date' => $out_date,
-            'solved' => $solved,
-            'progres' => $progres,
-            'closed' => $closed,
-            'total_tim_IT' => $total_tim_IT,
-            'all_project' => $all_project,
+        $reports = DB::table('Project_Report')->get();
+
+        foreach ($reports as $project) {
+            // reset untuk tiap proyek
+            $matchingTimelines = [];
+            $completePercentage = 0;
+            $project_id = $project->Id_Project;
+
+            $timelines = Timeline::select('t_timeline.*', 'm_project.id as project_id', 'm_project.xtype as type', 't_timelineA.*')
+                ->leftJoin('m_project','t_timeline.project_id','=','m_project.id')
+                ->leftJoin('t_timelineA','t_timeline.transactionnumber','=','t_timelineA.transactionnumber')
+                ->where('t_timeline.project_id',$project_id)
+                ->get();
+
+            // kumpulkan timelines sesuai role/user
+            foreach ($timelines as $t) {
+                $ids = explode(',',$t->karyawan_id);
+                if (
+                    in_array(Auth::user()->roles->code, $allowedRoles)
+                    || in_array(Auth::user()->id, $ids)
+                ) {
+                    $matchingTimelines[] = $t;
+                }
+            }
+
+            // hitung progress
+            foreach ($matchingTimelines as $t) {
+                if ($t->closed == 1 && $t->project_id == $project_id) {
+                    $completePercentage += $t->bobot;
+                }
+            }
+
+            $project->progress = $completePercentage;
+            $project->type     = $timelines->isEmpty() ? null : $timelines[0]->type;
+            $project_all[]     = $project; // simpan untuk UI
+
+            // switch status → count + detail list
+            switch ($project->Project_Status) {
+                // semua DONE
+                case "DONE":
+                    $solved++;
+                    $solvedList[] = $project;
+                    break;
+
+                
+                case "UP COMMING":
+                case "ON PROGRESS":
+                case "LATE":
+                    $progres++;
+                    $inProgressList[] = $project;
+                    break;
+
+                // semua CLOSED 
+                case "CLOSED":
+                    $closed++;
+                    $closedList[] = $project;
+                    break;
+            }
+
+            // semua LATE dan (atau progress=100)
+            if ($project->Project_Status == "LATE" || $project->progress == 100) {
+                $out_date++;
+                $out_date_list[] = $project;
+            
+            }
+            // semua selain DONE dan (atau progress=100)
+            if ($project->Project_Status != "DONE" || $project->progress == 100) {
+                $all_project++;
+            }
+        }
+
+        return [
+            'project'                => $project_all,
+            'solved'                 => $solved,
+            'solved_projects'        => $solvedList,
+            'inProgress'             => $progres,
+            'inProgress_projects'    => $inProgressList,
+            'out_date'               => $out_date,
+            'out_date_list'          => $out_date_list,
+            'closed'                 => $closed,
+            'closed_projects'        => $closedList,
+            'total_tim_IT'           => $total_tim_IT,
+            'all_project'            => $all_project,
         ];
-
-        return $data;
-
-        // // Mengambil semua proyek
-        // $count = 0;
-        // $out_date = 0;
-        // $solved = 0;
-        // $matchingTimelines = [];
-        // $endDateOneYearAgo = now()->subYear();
-
-        // $projects = Project::select('m_project.*')
-        //     ->selectRaw('m_client.name AS client_name')
-        //     ->selectRaw('pc_employee.name AS pc_name')
-        //     ->selectRaw('sales_employee.name AS sales_name')
-        //     ->join('m_client', 'm_client.id', '=', 'm_project.id_client')
-        //     ->leftJoin('m_employee AS pc_employee', 'pc_employee.id', '=', 'm_project.pc_id')
-        //     ->leftJoin('m_employee AS sales_employee', 'sales_employee.id', '=', 'm_project.sales_id')
-        //     ->whereDate('m_project.enddate', '>', $endDateOneYearAgo) // Menambahkan klausul WHERE untuk tanggal berakhir kurang dari satu tahun yang lalu
-        //     ->get();
-
-        // $project_all = [];
-
-        // foreach ($projects as $project) {
-        //     $project_id = $project->id;
-
-        //     // Menggunakan Eloquent untuk mengambil timeline yang sesuai dengan proyek
-        //     $timelines = Timeline::select('t_timeline.*', 'm_project.id as project_id', 't_timelineA.fase', 't_timelineA.id', 't_timelineA.karyawan_id', 't_timelineA.closed', 't_timelineA.enddate', 't_timelineA.bobot')
-        //         ->leftJoin('m_project', 't_timeline.project_id', '=', 'm_project.id')
-        //         ->leftJoin('t_timelineA', 't_timeline.transactionnumber', '=', 't_timelineA.transactionnumber')
-        //         ->where('t_timeline.project_id', $project_id)
-        //         ->get();
-
-
-
-
-        //     foreach ($timelines as $timeline) {
-        //         $karyawan_id_array = explode(',', $timeline->karyawan_id);
-
-        //         $allowedRoles = ['kdv', 'kdv', 'sa'];
-        //         if (!in_array(Auth::user()->roles->code, $allowedRoles)) {
-        //             $matchingTimelines[] = $timeline;
-        //         } else {
-        //             if (in_array(auth()->user()->id, $karyawan_id_array)) {
-        //                 $matchingTimelines[] = $timeline;
-        //             }
-        //         }
-        //     }
-
-        //     $progres = 0;
-
-
-
-        //     foreach ($timelines as $timeline) {
-        //         $karyawan_id_array = explode(',', $timeline->karyawan_id);
-        //         // Cek apakah pengguna saat ini cocok dengan karyawan dalam timeline
-
-        //         $allowedRoles = ['kdv', 'kdv', 'sa'];
-        //         if (!in_array(Auth::user()->roles->code, $allowedRoles)) {
-
-
-        //             $completePercentage = 0;
-        //             $count = 0;
-
-        //             foreach ($matchingTimelines as $timeline) {
-        //                 // Cek status "closed" dan tanggal "enddate" untuk setiap timeline
-
-        //                 if ($timeline->closed == 1) {
-        //                     $completePercentage =  $timeline->bobot + $completePercentage;
-        //                 }
-
-        //                 if (strtotime($timeline->enddate) < strtotime(now()) && $timeline->closed == 0) {
-        //                     $count++;
-        //                 }
-        //             }
-
-
-        //             // Menghitung proyek yang melewati tanggal akhir atau yang sudah selesai
-        //             if ($count >= 1) {
-        //                 $out_date++;
-        //             }
-
-        //             if ($completePercentage == 100) {
-        //                 $solved++;
-        //             }
-
-        //             if ($completePercentage < 100) {
-        //                 $progres++;
-        //             }
-
-        //             // Menyimpan hasil dalam array
-        //             $project_all[] = [
-        //                 'project' => $project,
-        //                 'progress' => $completePercentage,
-
-        //             ];
-
-        //             break;
-        //         } else {
-        //             if (in_array(auth()->user()->id, $karyawan_id_array)) {
-        //                 $completePercentage = 0;
-        //                 $count = 0;
-
-        //                 foreach ($matchingTimelines as $timeline) {
-        //                     // Cek status "closed" dan tanggal "enddate" untuk setiap timeline
-
-        //                     if ($timeline->closed == 1) {
-        //                         $completePercentage =  $timeline->bobot + $completePercentage;
-        //                     }
-
-        //                     if (strtotime($timeline->enddate) < strtotime(now()) && $timeline->closed == 0) {
-        //                         $count++;
-        //                     }
-        //                 }
-
-
-
-        //                 // Menghitung proyek yang melewati tanggal akhir atau yang sudah selesai
-        //                 if ($count >= 1) {
-        //                     $out_date++;
-        //                 }
-
-        //                 if ($completePercentage == 100) {
-        //                     $solved++;
-        //                 }
-
-        //                 if ($completePercentage < 100) {
-        //                     $progres++;
-        //                 }
-
-        //                 // Menyimpan hasil dalam array
-        //                 $project_all[] = [
-        //                     'project' => $project,
-        //                     'progress' => $completePercentage,
-        //                 ];
-
-        //                 break;
-        //             }
-        //         }
-        //     }
-        // }
-        // $project = [
-        //     'data' => $project_all,
-        //     'solved' => $solved,
-        //     'progres' => $progres,
-        //     'out_date' => $out_date,
-        // ];
-
-        // return $project;
     }
+
 
 
     private function getPercen()
