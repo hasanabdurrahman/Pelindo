@@ -49,16 +49,16 @@
              <section class="section row">
                  <div class="col">
                      <div class="row">
-                         <div class="col-6 col-lg-3 col-md-6">
+                         <div class="col-12 col-lg-6 col-md-4">
                              <div class="card">
                                  <div class="card-body px-4 py-4-5">
-                                     <div class="row">
-                                         <div class="col-md-3 col-lg-6 col-xl-6 col-xxl-3 d-flex justify-content-start">
+                                     <div class="row align-items-center">
+                                         <div class="col-auto d-flex justify-content-start">
                                              <div class="stats-icon blue mb-2">
                                                  <i class="iconly-boldActivity"></i>
                                              </div>
                                          </div>
-                                         <div class="col-md-10 col-lg-12 col-xl-12 col-xxl-9">
+                                         <div class="col">
                                              <h6 class="text-muted font-semibold">Total Project</h6>
                                              <h6 class="font-extrabold mb-0">{{ $project_all['all_project'] }}</h6>
                                          </div>
@@ -66,16 +66,16 @@
                                  </div>
                              </div>
                          </div>
-                         <div class="col-6 col-lg-3 col-md-6">
+                         <div class="col-12 col-lg-6 col-md-4">
                              <div class="card">
                                  <div class="card-body px-4 py-4-5">
-                                     <div class="row">
-                                         <div class="col-md-3 col-lg-6 col-xl-6 col-xxl-3 d-flex justify-content-start">
+                                     <div class="row align-items-center">
+                                         <div class="col-auto d-flex justify-content-start">
                                              <div class="stats-icon green mb-2">
                                                  <i class="iconly-boldTick-Square"></i>
                                              </div>
                                          </div>
-                                         <div class="col-md-10 col-lg-12 col-xl-12 col-xxl-9">
+                                         <div class="col">
                                              <h6 class="text-muted font-semibold">Project Completed</h6>
                                              <h6 class="font-extrabold mb-0">
                                                  {{ $project_all['solved'] }}</h6>
@@ -84,16 +84,16 @@
                                  </div>
                              </div>
                          </div>
-                         <div class="col-6 col-lg-3 col-md-6">
+                         <div class="col-12 col-lg-6 col-md-4">
                              <div class="card">
                                  <div class="card-body px-4 py-4-5">
-                                     <div class="row">
-                                         <div class="col-md-3 col-lg-6 col-xl-6 col-xxl-3 d-flex justify-content-start">
+                                     <div class="row align-items-center">
+                                         <div class="col-auto d-flex justify-content-start">
                                              <div class="stats-icon purple mb-2">
                                                  <i class="iconly-boldChart"></i>
                                              </div>
                                          </div>
-                                         <div class="col-md-10 col-lg-12 col-xl-12 col-xxl-9">
+                                         <div class="col">
                                              <h6 class="text-muted font-semibold">Project On Progress</h6>
                                              <h6 class="font-extrabold mb-0">
                                                  {{ $project_all['progres'] }}</h6>
@@ -102,16 +102,16 @@
                                  </div>
                              </div>
                          </div>
-                         <div class="col-6 col-lg-3 col-md-6">
+                         <div class="col-12 col-lg-6 col-md-4">
                              <div class="card">
                                  <div class="card-body px-4 py-4-5">
-                                     <div class="row">
-                                         <div class="col-md-3 col-lg-6 col-xl-6 col-xxl-3 d-flex justify-content-start">
+                                     <div class="row align-items-center">
+                                         <div class="col-auto d-flex justify-content-start">
                                              <div class="stats-icon red mb-2">
                                                  <i class="iconly-boldChart"></i>
                                              </div>
                                          </div>
-                                         <div class="col-md-10 col-lg-12 col-xl-12 col-xxl-9">
+                                         <div class="col">
                                              <h6 class="text-muted font-semibold">Project Out Date</h6>
                                              <h6 class="font-extrabold mb-0">
                                                  {{ $project_all['out_date'] }}</h6>
@@ -120,16 +120,16 @@
                                  </div>
                              </div>
                          </div>
-                         <div class="col-6 col-lg-3 col-md-6">
+                         <div class="col-12 col-lg-6 col-md-4">
                              <div class="card">
                                  <div class="card-body px-4 py-4-5">
-                                     <div class="row">
-                                         <div class="col-md-3 col-lg-6 col-xl-6 col-xxl-3 d-flex justify-content-start">
+                                     <div class="row align-items-center">
+                                         <div class="col-auto d-flex justify-content-start">
                                              <div class="stats-icon orange mb-2">
                                                  <i class="iconly-boldChart"></i>
                                              </div>
                                          </div>
-                                         <div class="col-md-10 col-lg-12 col-xl-12 col-xxl-9">
+                                         <div class="col">
                                              <h6 class="text-muted font-semibold">Project Closed</h6>
                                              <h6 class="font-extrabold mb-0">
                                                  {{ $project_all['closed'] }}</h6>
@@ -138,16 +138,16 @@
                                  </div>
                              </div>
                          </div>
-                         <div class="col-6 col-lg-3 col-md-6">
+                         <div class="col-12 col-lg-6 col-md-4">
                              <div class="card">
                                  <div class="card-body px-4 py-4-5">
-                                     <div class="row">
-                                         <div class="col-md-3 col-lg-6 col-xl-6 col-xxl-3 d-flex justify-content-start">
+                                     <div class="row align-items-center">
+                                         <div class="col-auto d-flex justify-content-start">
                                              <div class="stats-icon pink mb-2">
                                                  <i class="iconly-boldChart"></i>
                                              </div>
                                          </div>
-                                         <div class="col-md-10 col-lg-12 col-xl-12 col-xxl-9">
+                                         <div class="col">
                                              <h6 class="text-muted font-semibold">Total Tim IT DEV</h6>
                                              <h6 class="font-extrabold mb-0">
                                                  {{ $project_all['total_tim_IT'] }}</h6>
