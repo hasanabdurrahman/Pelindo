@@ -494,7 +494,10 @@ class HomeController extends Controller
                 DB::raw("CASE WHEN t_timelineA.closed = 0 THEN 'On Progress' ELSE 'Done' END as status"),
                 't_timelineA.enddate',
                 't_timelineA.startdate',
-                't_terminA.name as termin_name'
+                't_terminA.name as termin_name',
+                't_timelineA.problem',
+                't_timelineA.solution',
+                't_timelineA.anticipation'
             )
             ->leftJoin('m_project', 't_timeline.project_id', '=', 'm_project.id')
             ->leftJoin('t_timelineA', 't_timeline.transactionnumber', '=', 't_timelineA.transactionnumber')

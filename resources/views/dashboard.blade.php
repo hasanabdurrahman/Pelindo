@@ -598,6 +598,9 @@ $stats = [
                                     <th>End Date</th>
                                     <th>Bobot</th>
                                     <th>Status</th>
+                                    <th>Problem</th>
+                                    <th>Solution</th>
+                                    <th>Anticipation</th>
                                     <th>Termin</th>
                                 </tr>
                             </thead>
@@ -819,6 +822,9 @@ $stats = [
                         '<td class="text-bold-500">' + item.enddate +
                         '<td class="text-bold-500">' + item.bobot +
                         '<td class="text-bold-500">' + item.status +
+                        '<td class="text-bold-500">' + item.problem +
+                        '<td class="text-bold-500">' + item.solution +
+                        '<td class="text-bold-500">' + item.anticipation +
                         '<td class="text-bold-500">' + termin_name +
                         '</td>' +
                         '</tr>'
