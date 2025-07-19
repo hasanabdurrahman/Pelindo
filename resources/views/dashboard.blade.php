@@ -885,7 +885,7 @@ $stats = [
                         );
                         pc++;
                     } else if (item.Jabatan_Code == 'PM') {
-                        $('#data-table-pc tbody').append(
+                        $('#data-table-PM tbody').append(
                             '<tr>' +
                             '<td class="text-bold-500">' + item.Karyawan + '</td>' +
                             '<td>' + item.project_count + '</td>' +
