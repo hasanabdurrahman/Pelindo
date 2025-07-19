@@ -40,6 +40,7 @@ Route::middleware(['auth', 'ajax'])->group(function () {
     // Route::post('/employeeWithProject', [HomeController::class, 'searchEmployeeWithProject'])->name('dashboard.searchEmployeeWithProject');
     Route::post('/getTimelineProject', [HomeController::class, 'getTimelineWithProject'])->name('dashboard.getTimelineWithProject');
     Route::post('/projectStakeholder', [HomeController::class, 'projectStakeholder'])->name('dashboard.projectStakeholder');
+    Route::post('/projectStakeholderDetail', [HomeController::class, 'projectStakeholderDetail'])->name('dashboard.projectStakeholderDetail');
 });
 
 

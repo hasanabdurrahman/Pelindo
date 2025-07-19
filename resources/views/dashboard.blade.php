@@ -120,6 +120,57 @@ $stats = [
                     </div>
                 </div>
 
+                <!-- Modal 1: Daftar Role × Nama × #Project -->
+                <div class="modal fade" id="stakeholderModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Total Tim IT DEV</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <table class="table table-striped w-100" id="stakeholderTable">
+                        <thead>
+                            <tr>
+                            <th>Role</th>
+                            <th>Name</th>
+                            <th>Projects</th>
+                            <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                        </table>
+                    </div>
+                    </div>
+                </div>
+                </div>
+
+                <!-- Modal 2: Detail projek per karyawan -->
+                <div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                    <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="detailModalLabel">Detail Projek</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="table-responsive">
+                        <table class="table table-striped table-hover w-100" id="detailTable">
+                            <thead>
+                            <tr>
+                                <th>Code</th><th>Name</th><th>Contract#</th><th>Client</th>
+                                <th>Value</th><th>Start</th><th>End</th><th>PC</th><th>Sales</th>
+                                <th>Status</th><th>Progress</th>
+                            </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                </div>
+
                 @php
                 $allowedRoles = ['kdv', 'kdp', 'sa', 'PM'];
                 @endphp
@@ -574,6 +625,88 @@ $stats = [
 
 <script>
     $(function(){
+        // 0 Setup CSRF header untuk semua AJAX
+        $.ajaxSetup({
+            headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
+        });
+
+        // 1 Card “Total Tim IT DEV” di‑click → panggil projectStakeholder
+        $('[data-key="total_tim_IT"]').on('click', function(){
+            $.ajax({
+                url: '{{ route("dashboard.projectStakeholder") }}',
+                method: 'POST',
+                dataType: 'json',
+                success: function(data){
+                // 2) Definisikan kode‐kode role yang mau di‑blokir:
+                const blocked = ['uiux','up','eos']; 
+                //    (sesuaikan dengan Jabatan_Code yang dipakai di DB—contoh 'uiux' untuk UI UX, 'up' untuk User Project, 'eos' untuk Engineer On site)
+
+                // 3) Filter dulu:
+                const visible = data.filter(item => !blocked.includes(item.Jabatan_Code));
+
+                // 4) Render hasilnya:
+                const $tbody = $('#stakeholderTable tbody').empty();
+                visible.forEach(item => {
+                    $tbody.append(`
+                    <tr>
+                        <td>${item.Jabatan_Code}</td>
+                        <td>${item.Karyawan}</td>
+                        <td>${item.project_count}</td>
+                        <td>${item.action}</td>
+                    </tr>
+                    `);
+                });
+
+                // 5) Tampilkan modal
+                new bootstrap.Modal($('#stakeholderModal')).show();
+                },
+                error: console.error
+            });
+        });
+
+        // 2 Tombol Resource di modal pertama → panggil detail API
+        $('#stakeholderTable').on('click', '.btn-resource', function(){
+            let empId = $(this).data('id');
+            let name  = $(this).closest('tr').find('td:nth-child(2)').text();
+
+            $.ajax({
+            url: '{{ route("dashboard.projectStakeholderDetail") }}',
+            method: 'POST',
+            dataType: 'json',
+            data: { employe_id: empId },
+            success: function(list){
+                $('#detailModalLabel').text(name);
+                let $b = $('#detailTable tbody').empty();
+                list.forEach(p => {
+                $b.append(`
+                    <tr>
+                    <td>${p.Code_Project}</td>
+                    <td>${p.Project_Name}</td>
+                    <td>${p.Contract_Numer}</td>
+                    <td>${p.Client}</td>
+                    <td>${p.Value}</td>
+                    <td>${p.Start_Date}</td>
+                    <td>${p.End_Date}</td>
+                    <td>${p.PC}</td>
+                    <td>${p.Sales}</td>
+                    <td>${p.Project_Status}</td>
+                    <td>${p.progress || 0}%</td>
+                    </tr>
+                `);
+                });
+                new bootstrap.Modal($('#detailModal')).show();
+            },
+            error: function(err){
+                console.error(err);
+            }
+            });
+        });
+    });
+
+
+    $(function(){
         // ketika salah satu stats-card diklik
         $('.stats-card').on('click', function(){
         const key    = $(this).data('key'),
@@ -719,6 +852,7 @@ $stats = [
             success: function(data) {
                 var prg = 0;
                 var pc = 0;
+                var PM = 0
                 var tw = 0;
                 var soa = 0;
                 var ba = 0;
@@ -744,6 +878,15 @@ $stats = [
                             '</tr>'
                         );
                         pc++;
+                    } else if (item.Jabatan_Code == 'PM') {
+                        $('#data-table-pc tbody').append(
+                            '<tr>' +
+                            '<td class="text-bold-500">' + item.Karyawan + '</td>' +
+                            '<td>' + item.project_count + '</td>' +
+                            '</td>' +
+                            '</tr>'
+                        );
+                        PM++;
                     } else if (item.Jabatan_Code == 'tw') {
                         $('#data-table-tw tbody').append(
                             '<tr>' +
@@ -803,6 +946,7 @@ $stats = [
 
                 $("#count-table-prg").text(prg);
                 $("#count-table-pc").text(pc);
+                $("#count-table-PM").text(PM);
                 $("#count-table-tw").text(tw);
                 $("#count-table-soa").text(soa);
                 $("#count-table-ba").text(ba);

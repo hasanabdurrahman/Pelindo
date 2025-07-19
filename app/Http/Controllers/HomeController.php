@@ -394,31 +394,86 @@ class HomeController extends Controller
     //     return response()->json($data);
     // }
 
-    public function projectStakeholder()
+        public function projectStakeholder()
     {
+        // 1) Roles master
+        $roles = [
+            "Project Manager","Project Coordinator","Business Analyst",
+            "Software Analysis","Sistem Analyst","Technical Writer",
+            "Programmer","Super Admin", "UI UX", "User Project", "Engineer On site",
+        ];
 
-        $allowedRoles = ['kdv', 'kdp', 'sa', 'PM'];
-        if (in_array(Auth::user()->roles->code, $allowedRoles)) {
-            $result = DB::table('Timeline_Report')
-                ->selectRaw('COUNT(DISTINCT Project_Name) as project_count, Karyawan, Jabatan_Code ,  Employe_Id')
-                ->groupBy('Karyawan', 'Jabatan_Code', 'Employe_Id')
-                ->get();
-        } else {
-            $query = DB::table('Timeline_Report')
-                ->selectRaw('COUNT(DISTINCT Project_Name) as project_count, Karyawan, Jabatan_Code ,  Employe_Id')
-                ->where('Employe_Id', Auth::user()->id)
-                ->groupBy('Karyawan', 'Jabatan_Code', 'Employe_Id')
-                ->first();
+        // 2) Ambil semua karyawan dengan salah satu roles di atas
+        //    + hitung COUNT DISTINCT project per karyawan (boleh 0)
+        $result = DB::table('m_employee AS e')
+            ->join('m_roles AS r', 'e.roles_id', '=', 'r.id')
+            ->leftJoin('Timeline_Report AS tr', 'tr.Employe_Id', '=', 'e.id')
+            ->whereIn('r.name', $roles)
+            ->selectRaw("
+                r.code AS Jabatan_Code,
+                e.name AS Karyawan,
+                e.id   AS Employe_Id,
+                COUNT(DISTINCT tr.Project_Name) AS project_count
+            ")
+            ->groupBy('e.id','r.code','e.name')
+            ->get();
 
-            $result = DB::table('Timeline_Report')
-                ->selectRaw('COUNT(DISTINCT Project_Name) as project_count, Karyawan, Jabatan_Code ,  Employe_Id')
-                ->where('PC', $query->Karyawan)
-                ->groupBy('Karyawan', 'Jabatan_Code', 'Employe_Id')
-                ->get();
+        // 3) Tambah tombol Resource
+        foreach ($result as $row) {
+            $row->action = '<button
+                class="btn btn-sm btn-primary btn-resource"
+                data-id="'. $row->Employe_Id .'">
+                Resource
+            </button>';
         }
 
-
         return response()->json($result);
+    }
+
+    /**
+     * Kembalikan detail semua projek yang sedang dikerjakan karyawan tertentu.
+     */
+    public function projectStakeholderDetail(Request $request)
+    {
+        $empId = $request->input('employe_id');
+
+        // Kita join ke view Project_Report untuk dapat kolom Project_Status
+        $list = DB::table('m_project AS p')
+            ->join('Project_Report AS pr', 'pr.Id_Project', '=', 'p.id')
+            ->join('m_client AS c', 'c.id', '=', 'p.id_client')
+            ->leftJoin('m_employee AS pc', 'pc.id', '=', 'p.pc_id')
+            ->leftJoin('m_employee AS s',  's.id',  '=', 'p.sales_id')
+            ->select([
+                'p.code as Code_Project',
+                'p.name as Project_Name',
+                'p.contract_number as Contract_Numer',
+                'c.name as Client',
+                'p.value as Value',
+                'p.startdate as Start_Date',
+                'p.enddate as End_Date',
+                'pc.name as PC',
+                's.name  as Sales',
+                'pr.Project_Status',
+                // subquery progress khusus untuk karyawan ini
+                DB::raw("(
+                    SELECT SUM(a.bobot)
+                    FROM t_timelineA a
+                    JOIN t_timeline  t ON a.transactionnumber = t.transactionnumber
+                    WHERE t.project_id = p.id
+                    AND FIND_IN_SET($empId, a.karyawan_id)
+                    AND a.closed = 1
+                ) as progress")
+            ])
+            // hanya projek yang melibatkan karyawan ini
+            ->whereExists(function($q) use ($empId) {
+                $q->select(DB::raw('1'))
+                ->from('t_timelineA AS a')
+                ->join('t_timeline AS t', 'a.transactionnumber', '=', 't.transactionnumber')
+                ->whereRaw("t.project_id = p.id AND FIND_IN_SET($empId, a.karyawan_id)");
+            })
+            ->get();
+
+        return response()->json($list);
     }
 
 
