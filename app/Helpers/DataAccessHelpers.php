@@ -3,6 +3,7 @@
 namespace App\Helpers;
 
 use Carbon\Carbon;
+use Illuminate\Support\Str; 
 use CurlHandle;
 use Illuminate\Support\Facades\DB;
 
@@ -46,38 +47,38 @@ class DataAccessHelpers
         }
     }
 
-    public static function generateTransactionNumber($project_id)
+    public static function generateTransactionNumber(int $project_id): string
     {
+        /* 1) Ambil kode proyek */
         $projectCode = DB::table('m_project')
-            ->select('code')
-            ->where('id', '=', $project_id)
-            ->first();
+                        ->where('id', $project_id)
+                        ->value('code');                      // lebih ringkas
 
-
-        $currentYear = Carbon::now()->translatedFormat('Y');
-
-        $totalProject = DB::table('t_timeline')->select('*')->whereYear('created_at', $currentYear)->orderBy('created_at', 'DESC')->get();
-        $number = '0000';
-
-        if ($totalProject == null) {
-            $number = '0001';
-        } else {
-            $lastId = explode('/', $totalProject[0]->transactionnumber);
-            $number = (int) $lastId[count($lastId) - 1] + 1;
-            $number = sprintf('%04d', $number);
+        if (!$projectCode) {
+            throw new \RuntimeException("Project $project_id tidak ditemukan");
         }
 
-        // } else if (strlen($totalProject) < 4) {
-        //     // $number = substr($number, 0, $totalProject).$totalProject;
-        //     $number = sprintf("%04d", (int)$totalProject + 1);
-        // } else {
-        //     $number = $totalProject;
-        // }
+        /* 2) Tahun sekarang */
+        $year = Carbon::now()->year;                           // integer (2025)
 
-        $code = explode('/', $projectCode->code)[0];
-        $transNumber = "TL/$code/$currentYear/$number";
+        /* 3) Header timeline terakhir di tahun yg sama */
+        $last = DB::table('t_timeline')
+                ->whereYear('created_at', $year)
+                ->orderByDesc('created_at')
+                ->first();                                   // bisa null
 
-        return $transNumber;
+        /* 4) Nomor urut berikutnya */
+        $next = 1;
+        if ($last) {
+            // contoh TL/PRJ/2025/0007  →  ambil '0007'
+            $parts = explode('/', $last->transactionnumber);
+            $next  = (int) end($parts) + 1;
+        }
+        $runningNo = sprintf('%04d', $next);                   // 0001, 0002, ...
+
+        /* 5) Susun nomor transaksi */
+        $prefix = Str::upper(explode('/', $projectCode)[0]);   // ambil kode depan
+        return "TL/$prefix/$year/$runningNo";
     }
 
     public static function generateAdTransNumber($project_id, $transNumber)

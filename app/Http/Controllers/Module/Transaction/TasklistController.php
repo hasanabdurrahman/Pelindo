@@ -299,51 +299,51 @@ class TasklistController extends Controller
 
     public function create()
     {
-        /** LAMA */
-        // Ambil semua timeline yang approve_at-nya tidak null
-        // $timelines = Timeline::whereNotNull('approved_by')->where('deletestatus', 0)->get();
+        $userId = Auth::id();
 
-        // Ambil daftar project yang sesuai dengan timeline di atas
-        // $projects = Project::whereIn('id', $timelines->pluck('project_id'))->where('deleted_status', 0)->get();
+        // 1) Projects where I'm the PC
+        $pcProjects = DB::table('m_project as mp')
+            ->select('mp.id as project_id', 'mp.name')
+            ->where('mp.pc_id', $userId);
 
-        /** BARU */
-        $karyawan_id = Auth::user()->id;
-        $project =  DB::table('m_project as mp')
-            ->select('mp.id as project_id', 'mp.name', 'tta.karyawan_id')
-            ->join('t_timeline as tt', 'tt.project_id', '=', 'mp.id')
-            ->join('t_timelineA as tta', 'tta.transactionnumber', '=', 'tt.transactionnumber')
-            ->whereNotNull('tt.approved_by')
+        // 2) Projects where I'm assigned to an open TimelineA
+        $tlProjects = DB::table('m_project as mp')
+            ->select('mp.id as project_id', 'mp.name')
+            ->join('t_timeline as tt','tt.project_id','=','mp.id')
+            ->join('t_timelineA as tta','tta.transactionnumber','=','tt.transactionnumber')
             ->where('tta.closed', 0)
-            ->orWhere('pc_id', $karyawan_id);
-        // ->get();
+            ->whereRaw('FIND_IN_SET(?, tta.karyawan_id)', [$userId])
+            ->distinct();
 
-        $requestTeam = DB::table('trx_requestteam as tr')
-            ->select('tr.project_id', 'mp.name', 'tr.karyawan_id')
-            ->join('m_project as mp', 'tr.project_id', 'mp.id')
-            ->join('t_timeline as tt', 'mp.id', 'tt.project_id')
-            ->where('tr.approval1', '1')
-            ->orWhere('tr.approval2', '1')
-            ->where('tr.karyawan_id', $karyawan_id)
-            ->union($project)
+        // 3) Projects I requested on via RequestTeam (and were approved)
+        $rtProjects = DB::table('trx_requestteam as tr')
+            ->select('tr.project_id', 'mp.name')
+            ->join('m_project as mp', 'mp.id', '=', 'tr.project_id')
+            ->where(function($q){
+                $q->where('tr.approval1', 1)
+                ->orWhere('tr.approval2', 1);
+            })
+            ->where('tr.karyawan_id', $userId);
+
+        // Union them all together
+        $all = $pcProjects
+            ->union($tlProjects)
+            ->union($rtProjects)
             ->get();
 
+        // De-dupe by project_id
         $projects = [];
-
-        /** LIST PROJECT BASED ON TIMELINE A ASSIGNED & REQUEST TEAM */
-        foreach ($requestTeam as $val) {
-            $storedKaryawanId = explode(',', $val->karyawan_id);
-            if (in_array($karyawan_id, $storedKaryawanId)) {
-                unset($val->karyawan_id);
-                // dump(in_array($val, $projects));
-                if (!in_array($val, $projects)) {
-                    array_push($projects, $val);
-                }
-            }
+        foreach ($all as $row) {
+            $projects[$row->project_id] = (object)[
+                'project_id' => $row->project_id,
+                'name'       => $row->name,
+            ];
         }
+        $projects = array_values($projects);
 
-        $employee = Employee::where('id', Auth::user()->id)->first();
+        $employee = Employee::findOrFail($userId);
 
-        return view('module.transaction.tasklist.add', compact('employee', 'projects'));
+        return view('module.transaction.tasklist.add', compact('employee','projects'));
     }
 
     public function store(Request $request)
@@ -761,53 +761,50 @@ class TasklistController extends Controller
         ], JsonResponse::HTTP_OK);
     }
 
-    public function getTimelineAByProject($Projectid)
-    {
-        // Ambil proyek berdasarkan ID
-        $project = Project::find($Projectid);
+    public function getTimelineAByProject($projectId)
+{
+    $me      = Auth::user();
+    
 
-        // Jika proyek ditemukan, ambil timeline yang sesuai
-        if ($project) {
-            $timelines = Timeline::select('t_timeline.*', 'm_project.id as project_id', 't_timelineA.detail', 't_timelineA.id', 't_timelineA.karyawan_id', 't_timelineA.startdate', 't_timelineA.enddate', 't_timelineA.is_document')
-                ->leftJoin('m_project', 't_timeline.project_id', '=', 'm_project.id')
-                ->leftJoin('t_timelineA', 't_timeline.transactionnumber', '=', 't_timelineA.transactionnumber')
-                ->where('t_timeline.project_id', $Projectid)
-                ->where('t_timelineA.closed', 0)
-                ->get(); // Ambil semua data sekaligus
+    // start from t_timelineA
+    $timelines = TimelineA::select(
+                        't_timelineA.id',
+                        't_timelineA.detail',
+                        't_timelineA.startdate',
+                        't_timelineA.enddate',
+                        't_timelineA.karyawan_id',
+                        't_timelineA.is_document'
+                    )
+                    // join back to t_timeline so we can filter on project_id
+                    ->join('t_timeline', 't_timeline.transactionnumber', '=', 't_timelineA.transactionnumber')
+                    ->where('t_timeline.project_id', $projectId)
+                    ->where('t_timelineA.closed', 0)
+                    ->get();
 
-            $matchingTimelines = []; // Inisialisasi array untuk menyimpan hasil pencocokan
-
-            foreach ($timelines as $timeline) {
-                $karyawan_id_array = explode(',', $timeline->karyawan_id);
-
-                // Cek apakah auth()->user()->id cocok dengan setiap $karyawan_id dalam array
-                if (in_array(auth()->user()->id, $karyawan_id_array)) {
-                    $timeline->enddate = Carbon::parse($timeline->enddate)->format('d/m/Y');
-                    $timeline->startdate = Carbon::parse($timeline->startdate)->format('d/m/Y');
-                    $matchingTimelines[] = $timeline; // Tambahkan timeline yang cocok ke dalam array
-                }
-            }
-
-            // Jika ada timeline yang sesuai, kembalikan respons JSON
-            if (!empty($matchingTimelines)) {
-                return response()->json($matchingTimelines);
-            }
+    $out = [];
+    foreach ($timelines as $tl) {
+         {
+            $tl->startdate = Carbon::parse($tl->startdate)->format('d/m/Y');
+            $tl->enddate   = Carbon::parse($tl->enddate)  ->format('d/m/Y');
+            $out[] = $tl;
         }
-        // Jika tidak ada proyek atau timeline yang sesuai, kembalikan respons kosong atau pesan kesalahan sesuai kebutuhan Anda.
-        return response()->json([]);
     }
 
-    public function getAllTimelineAByProject($Projectid)
+    return response()->json($out);
+}
+
+
+    public function getAllTimelineAByProject($projectId)
     {
          // Ambil proyek berdasarkan ID
-         $project = Project::find($Projectid);
+         $project = Project::find($projectId);
 
          // Jika proyek ditemukan, ambil timeline yang sesuai
          if ($project) {
              $timelines = Timeline::select('t_timeline.*', 'm_project.id as project_id', 't_timelineA.detail', 't_timelineA.id', 't_timelineA.karyawan_id', 't_timelineA.startdate', 't_timelineA.enddate', 't_timelineA.is_document')
                  ->leftJoin('m_project', 't_timeline.project_id', '=', 'm_project.id')
                  ->leftJoin('t_timelineA', 't_timeline.transactionnumber', '=', 't_timelineA.transactionnumber')
-                 ->where('t_timeline.project_id', $Projectid)
+                 ->where('t_timeline.project_id', $projectId)
                  ->get(); // Ambil semua data sekaligus
 
              $matchingTimelines = []; // Inisialisasi array untuk menyimpan hasil pencocokan

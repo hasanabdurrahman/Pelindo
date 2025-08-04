@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Module\Transaction;
 
+use Illuminate\Support\Facades\Validator;
 use App\Helpers\ExampleExport;
 use App\Helpers\DataAccessHelpers;
 use App\Http\Controllers\Controller;
@@ -250,71 +251,99 @@ class TimelineController extends Controller
         }
     }
 
-    public function store(Request $request){
-        $trans_number = DataAccessHelpers::generateTransactionNumber($request->project_id);
-        /**
-         * Insert data to Header
-         */
-        DB::beginTransaction();
-        try {
-            $header['transactionnumber'] = $trans_number;
-            $header['project_id'] = $request->project_id;
-            $header['created_by'] = Auth::user()->name;
-            $header['created_at'] = now();
-            // $header['bobot'] = $request->bobot;
-            $header['deletestatus'] = 0;
+    public function store(Request $request)
+{
+    /* ---------- 1) Rules dasar ---------- */
+    $rules = [
+        'project_id'   => 'required|integer|exists:m_project,id',
+        'phase'        => 'required|array|min:1',
+        'phase.*'      => 'required|string|max:255',
 
-            $t_header = Timeline::create($header);
+        'work'         => 'required|array',
+        'work.*'       => 'required|string',
 
-            /**
-             * Start Insert Detail
-             */
-            try {
-                for ($i=0; $i < count($request->phase) ; $i++) {
-                    TimelineA::create([
-                        'transactionnumber' => $trans_number,
-                        'fase' => $request->phase[$i],
-                        'detail' => $request->work[$i],
-                        'startdate' => $request->start_date[$i],
-                        'enddate' => $request->end_date[$i],
-                        'bobot' => $request->bobot[$i],
-                        'karyawan_id' => $request->employee[$i],
-                        'order' => (int)$i+1,
-                        'closed' => 0,
-                        'is_document' => $request->is_document[$i]
-                    ]);
-                }
+        'start_date'   => 'required|array',
+        'start_date.*' => 'required|date',
 
-                DB::commit();
-                return response()->json([
-                    'status' => [
-                        'msg' => 'OK',
-                        'code' => JsonResponse::HTTP_OK,
-                    ],
-                ], JsonResponse::HTTP_OK);
-            } catch (\Throwable $th) {
-                DB::rollBack();
-                return response()->json([
-                    'status' => [
-                        'msg' => 'Gagal Insert data timeline (detail), harap coba lagi',
-                        'code' => JsonResponse::HTTP_INTERNAL_SERVER_ERROR,
-                    ],
-                    'data' => null,
-                    'err_detail' => $th,
-                ], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
+        'end_date'     => 'required|array',
+        'end_date.*'   => 'required|date|after_or_equal:start_date.*',
+
+        'bobot'        => 'required|array',
+        'bobot.*'      => 'required|integer|min:0|max:100',
+
+        'employee'     => 'required|array',
+        'employee.*'   => 'required|integer|exists:m_employee,id',
+
+        'is_document'  => 'nullable|array',
+        'is_document.*'=> 'boolean',
+    ];
+
+    /* ---------- 2) Buat validator ---------- */
+    $validator = Validator::make($request->all(), $rules);
+
+    /* ---------- 3) Tambahkan pengecekan panjang array ---------- */
+    $validator->after(function ($v) use ($request) {
+        $len   = count($request->input('phase', []));
+        $group = ['work', 'start_date', 'end_date',
+                  'bobot', 'employee', 'is_document'];
+
+        foreach ($group as $field) {
+            if (count($request->input($field, [])) !== $len) {
+                $v->errors()->add($field,
+                    "Jumlah $field harus sama dengan phase");
             }
-        } catch (\Throwable $th) {
-            DB::rollBack();
-            return response()->json([
-                'status' => [
-                    'msg' => 'Gagal Insert data timeline (header), harap coba lagi',
-                    'code' => JsonResponse::HTTP_INTERNAL_SERVER_ERROR,
-                ],
-                'data' => null,
-                'err_detail' => $th,
-            ], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
+    });
+
+    if ($validator->fails()) {
+        return response()->json([
+            'errors'  => $validator->errors(),
+            'message' => $validator->errors()->first(),
+        ], 422);
     }
+
+    $data   = $validator->validated();
+    $rows   = count($data['phase']);
+    $docs   = $data['is_document'] ?? array_fill(0, $rows, 0);
+    $trxNo  = DataAccessHelpers::generateTransactionNumber($data['project_id']);
+
+    /* ---------- 4) Simpan ---------- */
+    DB::beginTransaction();
+    try {
+        Timeline::create([
+            'transactionnumber'=> $trxNo,
+            'project_id'       => $data['project_id'],
+            'created_by'       => Auth::user()->name,
+            'deletestatus'     => 0,
+        ]);
+
+        for ($i = 0; $i < $rows; $i++) {
+            TimelineA::create([
+                'transactionnumber'=> $trxNo,
+                'fase'             => $data['phase'][$i],
+                'detail'           => $data['work'][$i],
+                'startdate'        => $data['start_date'][$i],
+                'enddate'          => $data['end_date'][$i],
+                'bobot'            => $data['bobot'][$i],
+                'karyawan_id'      => $data['employee'][$i],
+                'order'            => $i + 1,
+                'closed'           => 0,
+                'is_document'      => $docs[$i] ?? 0,
+            ]);
+        }
+
+        DB::commit();
+        return response()->json(['status'=>'OK'], 200);
+
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        return response()->json([
+            'status' => 'error',
+            'error'  => $e->getMessage()
+        ], 500);
+    }
+}
+
 
     public function edit($trans_number){
         $trans_number = base64_decode($trans_number);
